@@ -398,6 +398,61 @@ tr:hover td { background: var(--gold-bg); }
 .empty p { font-size: 14px; }
 
 /* HISTORY */
+.pdf-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--gold-bg);
+  border: 1px solid var(--gold-light);
+  border-radius: var(--radius-lg);
+  padding: 12px 1.25rem;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+.pdf-bar.visible { display: flex; }
+.pdf-bar-text { font-size: 13px; color: var(--gold); font-weight: 500; }
+.btn-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--gold);
+  color: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn-pdf:hover { background: #a86e08; }
+.hist-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.select-all-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--ink2);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.select-all-row input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+  cursor: pointer;
+}
 .hist-entry {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -564,6 +619,8 @@ tr:hover td { background: var(--gold-bg); }
   .tab-btn { padding: 12px 12px; font-size: 12px; }
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -677,6 +734,15 @@ tr:hover td { background: var(--gold-bg); }
 <!-- HISTORIQUE -->
 <div id="tab-historique" class="tab-panel">
   <div style="font-family:'DM Serif Display',serif; font-size:22px; margin-bottom:1.5rem;">Historique des journées</div>
+
+  <div class="pdf-bar" id="pdf-bar">
+    <span class="pdf-bar-text" id="pdf-bar-text">0 journée sélectionnée</span>
+    <button class="btn-pdf" id="btn-download-pdf">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Télécharger le PDF
+    </button>
+  </div>
+
   <div id="hist-list">
     <div class="empty"><div class="empty-icon">📅</div><p>Aucune journée clôturée pour l'instant</p></div>
   </div>
@@ -1084,18 +1150,23 @@ function renderHistory() {
   const el = document.getElementById('hist-list');
   if (!history.length) {
     el.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><p>Aucune journée clôturée pour l\'instant</p></div>';
+    updatePdfBar();
     return;
   }
-  el.innerHTML = history.map((h, i) => `
+  let html = `<label class="select-all-row"><input type="checkbox" id="chk-all" /> Tout sélectionner</label>`;
+  html += history.map((h, i) => `
     <div class="hist-entry">
-      <div class="hist-header" id="hh-${i}" onclick="toggleHist(${i})">
-        <div>
-          <div class="hist-date">${h.date}</div>
-          <div class="hist-meta">${h.clients.length} client(s) · ${h.totLots} lot(s) · ${h.totPlateaux} plateaux · ${h.totPoids.toFixed(2)} kg net</div>
+      <div class="hist-header" id="hh-${i}">
+        <div style="display:flex;align-items:center;flex:1;gap:8px;min-width:0;">
+          <input type="checkbox" class="hist-checkbox" id="chk-${i}" data-index="${i}" />
+          <div style="flex:1;min-width:0;cursor:pointer;" id="hist-toggle-${i}">
+            <div class="hist-date">${h.date}</div>
+            <div class="hist-meta">${h.clients.length} client(s) · ${h.totLots} lot(s) · ${h.totPlateaux} plateaux · ${h.totPoids.toFixed(2)} kg net</div>
+          </div>
         </div>
-        <div style="display:flex; align-items:center; gap:16px;">
+        <div style="display:flex;align-items:center;gap:16px;cursor:pointer;" id="hist-toggle2-${i}">
           <div class="hist-total">${h.totRecettes.toLocaleString('fr-FR')} FCFA</div>
-          <span class="chevron">▾</span>
+          <span class="chevron" id="chev-${i}">▾</span>
         </div>
       </div>
       <div class="hist-body" id="hb-${i}">
@@ -1107,9 +1178,9 @@ function renderHistory() {
               <td><span class="badge badge-gold">${c.nbLots}</span></td>
               <td><span class="badge badge-green">${c.nbPlateaux}</span></td>
               <td style="font-family:'DM Mono',monospace;">${c.brutTotal.toFixed(2)} kg</td>
-              <td style="font-family:'DM Mono',monospace; font-weight:600;">${c.net.toFixed(2)} kg</td>
+              <td style="font-family:'DM Mono',monospace;font-weight:600;">${c.net.toFixed(2)} kg</td>
               <td style="font-family:'DM Mono',monospace;">${c.prix.toLocaleString('fr-FR')}</td>
-              <td style="font-family:'DM Mono',monospace; color:var(--gold); font-weight:600;">${c.montant.toLocaleString('fr-FR')} FCFA</td>
+              <td style="font-family:'DM Mono',monospace;color:var(--gold);font-weight:600;">${c.montant.toLocaleString('fr-FR')} FCFA</td>
             </tr>`).join('')}
           </tbody>
         </table></div>
@@ -1119,19 +1190,180 @@ function renderHistory() {
           <span>Recettes totales : <strong style="color:var(--gold);">${h.totRecettes.toLocaleString('fr-FR')} FCFA</strong></span>
         </div>
         <div style="margin-top:12px;">
-          <button class="btn btn-danger" onclick="deleteHist(${i})">🗑 Supprimer cette journée</button>
+          <button class="btn btn-danger" id="delbtn-${i}">🗑 Supprimer cette journée</button>
         </div>
       </div>
     </div>
   `).join('');
+  el.innerHTML = html;
+
+  // Bind checkboxes
+  document.querySelectorAll('.hist-checkbox').forEach(function(chk) {
+    chk.addEventListener('change', updatePdfBar);
+    chk.addEventListener('touchend', function(e) { e.stopPropagation(); });
+  });
+
+  // Bind select-all
+  var chkAll = document.getElementById('chk-all');
+  if (chkAll) {
+    ['change', 'touchend'].forEach(function(evt) {
+      chkAll.addEventListener(evt, function(e) {
+        if (evt === 'touchend') e.stopPropagation();
+        document.querySelectorAll('.hist-checkbox').forEach(function(chk) { chk.checked = chkAll.checked; });
+        updatePdfBar();
+      });
+    });
+  }
+
+  // Bind toggle accordéon et delete
+  history.forEach(function(h, i) {
+    ['hist-toggle-'+i, 'hist-toggle2-'+i].forEach(function(id) {
+      var el2 = document.getElementById(id);
+      if (el2) {
+        ['click','touchend'].forEach(function(evt) {
+          el2.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleHist(i);
+          }, { passive: false });
+        });
+      }
+    });
+    var delBtn = document.getElementById('delbtn-'+i);
+    if (delBtn) {
+      ['click','touchend'].forEach(function(evt) {
+        delBtn.addEventListener(evt, function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          deleteHist(i);
+        }, { passive: false });
+      });
+    }
+  });
+
+  updatePdfBar();
 }
+
+function updatePdfBar() {
+  var checked = document.querySelectorAll('.hist-checkbox:checked');
+  var bar = document.getElementById('pdf-bar');
+  var txt = document.getElementById('pdf-bar-text');
+  var n = checked.length;
+  if (n > 0) {
+    bar.classList.add('visible');
+    txt.textContent = n + ' journ\u00e9e' + (n > 1 ? 's' : '') + ' s\u00e9lectionn\u00e9e' + (n > 1 ? 's' : '');
+  } else {
+    bar.classList.remove('visible');
+  }
+  var all = document.querySelectorAll('.hist-checkbox');
+  var chkAll = document.getElementById('chk-all');
+  if (chkAll) chkAll.checked = all.length > 0 && checked.length === all.length;
+}
+
+function downloadPDF() {
+  var jsPDFLib = window.jspdf;
+  if (!jsPDFLib) { alert('Erreur : librairie PDF non chargée.'); return; }
+  var doc = new jsPDFLib.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var checked = document.querySelectorAll('.hist-checkbox:checked');
+  var indices = Array.from(checked).map(function(c) { return parseInt(c.dataset.index); });
+  var selected = indices.map(function(i) { return history[i]; }).filter(Boolean);
+  if (!selected.length) return;
+
+  var margin = 15;
+  var y = margin;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(26, 21, 16);
+  doc.text("Ventes d'oeufs \u2014 Rapport", margin, y);
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(120, 110, 100);
+  doc.text('G\u00e9n\u00e9r\u00e9 le ' + new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' }), margin, y);
+  y += 10;
+  doc.setDrawColor(200, 134, 10);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, 210 - margin, y);
+  y += 8;
+
+  selected.forEach(function(h, idx) {
+    if (y > 250) { doc.addPage(); y = margin; }
+    doc.setFillColor(253, 243, 213);
+    doc.roundedRect(margin, y - 4, 210 - margin * 2, 14, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(200, 134, 10);
+    doc.text(h.date, margin + 4, y + 5);
+    y += 16;
+
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      head: [['Client', 'Lots', 'Plateaux', 'Poids net (kg)', 'Prix/kg (FCFA)', 'Montant (FCFA)']],
+      body: h.clients.map(function(c) {
+        return [c.nom, c.nbLots, c.nbPlateaux, c.net.toFixed(2), c.prix.toLocaleString('fr-FR'), c.montant.toLocaleString('fr-FR')];
+      }),
+      headStyles: { fillColor: [26, 21, 16], textColor: [245, 217, 138], fontStyle: 'bold', fontSize: 9 },
+      bodyStyles: { fontSize: 9, textColor: [26, 21, 16] },
+      alternateRowStyles: { fillColor: [253, 250, 244] },
+      tableLineColor: [200, 134, 10],
+      tableLineWidth: 0.1,
+    });
+
+    y = doc.lastAutoTable.finalY + 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(26, 21, 16);
+    doc.text(
+      'Total : ' + h.totPlateaux + ' plateaux \u00b7 ' + h.totPoids.toFixed(2) + ' kg \u00b7 ' + h.totRecettes.toLocaleString('fr-FR') + ' FCFA',
+      margin + 4, y + 4
+    );
+    y += 12;
+
+    if (idx < selected.length - 1) {
+      doc.setDrawColor(220, 210, 200);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, 210 - margin, y);
+      y += 8;
+    }
+  });
+
+  if (selected.length > 1) {
+    if (y > 240) { doc.addPage(); y = margin; }
+    y += 4;
+    doc.setDrawColor(200, 134, 10);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, 210 - margin, y);
+    y += 8;
+    var grandTotal = selected.reduce(function(s, h) { return s + h.totRecettes; }, 0);
+    var grandPoids = selected.reduce(function(s, h) { return s + h.totPoids; }, 0);
+    var grandPlateaux = selected.reduce(function(s, h) { return s + h.totPlateaux; }, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(200, 134, 10);
+    doc.text('R\u00e9capitulatif global', margin, y);
+    y += 6;
+    doc.setFontSize(10);
+    doc.setTextColor(26, 21, 16);
+    doc.text(
+      selected.length + ' journ\u00e9es \u00b7 ' + grandPlateaux + ' plateaux \u00b7 ' + grandPoids.toFixed(2) + ' kg \u00b7 ' + grandTotal.toLocaleString('fr-FR') + ' FCFA',
+      margin, y
+    );
+  }
+
+  doc.save('point-ventes-oeufs.pdf');
+}
+
 
 function toggleHist(i) {
   const body = document.getElementById('hb-' + i);
   const header = document.getElementById('hh-' + i);
+  const chev = document.getElementById('chev-' + i);
   const isOpen = body.classList.contains('open');
   body.classList.toggle('open', !isOpen);
   header.classList.toggle('open', !isOpen);
+  if (chev) chev.style.transform = !isOpen ? 'rotate(180deg)' : '';
 }
 
 function deleteHist(i) {
@@ -1175,6 +1407,7 @@ function bindEvents() {
   on('btn-add-edit-pesee', function() { addEditPesee(); });
   on('btn-save-edit', function() { saveEdit(); });
   on('btn-close-modal', function() { closeModal(); });
+  on('btn-download-pdf', function() { downloadPDF(); });
 }
 
 bindEvents();
