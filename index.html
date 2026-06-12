@@ -1261,7 +1261,7 @@ function updatePdfBar() {
 }
 
 function fmt(n) {
-  return Number(n).toLocaleString('fr-FR');
+  return Number(n).toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
 }
 function fmtKg(n) {
   return Number(n).toFixed(2).replace('.', ',');
