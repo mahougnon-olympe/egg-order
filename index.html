@@ -1260,6 +1260,13 @@ function updatePdfBar() {
   if (chkAll) chkAll.checked = all.length > 0 && checked.length === all.length;
 }
 
+function fmt(n) {
+  return Number(n).toLocaleString('fr-FR');
+}
+function fmtKg(n) {
+  return Number(n).toFixed(2).replace('.', ',');
+}
+
 function downloadPDF() {
   var jsPDFLib = window.jspdf;
   if (!jsPDFLib) { alert('Erreur : librairie PDF non chargée.'); return; }
@@ -1302,7 +1309,7 @@ function downloadPDF() {
       margin: { left: margin, right: margin },
       head: [['Client', 'Lots', 'Plateaux', 'Poids net (kg)', 'Prix/kg (FCFA)', 'Montant (FCFA)']],
       body: h.clients.map(function(c) {
-        return [c.nom, c.nbLots, c.nbPlateaux, c.net.toFixed(2), c.prix.toLocaleString('fr-FR'), c.montant.toLocaleString('fr-FR')];
+        return [c.nom, c.nbLots, c.nbPlateaux, fmtKg(c.net), fmt(c.prix), fmt(c.montant)];
       }),
       headStyles: { fillColor: [26, 21, 16], textColor: [245, 217, 138], fontStyle: 'bold', fontSize: 9 },
       bodyStyles: { fontSize: 9, textColor: [26, 21, 16] },
@@ -1316,7 +1323,7 @@ function downloadPDF() {
     doc.setFontSize(9);
     doc.setTextColor(26, 21, 16);
     doc.text(
-      'Total : ' + h.totPlateaux + ' plateaux \u00b7 ' + h.totPoids.toFixed(2) + ' kg \u00b7 ' + h.totRecettes.toLocaleString('fr-FR') + ' FCFA',
+      'Total : ' + h.totPlateaux + ' plateaux \u00b7 ' + fmtKg(h.totPoids) + ' kg \u00b7 ' + fmt(h.totRecettes) + ' FCFA',
       margin + 4, y + 4
     );
     y += 12;
@@ -1347,7 +1354,7 @@ function downloadPDF() {
     doc.setFontSize(10);
     doc.setTextColor(26, 21, 16);
     doc.text(
-      selected.length + ' journ\u00e9es \u00b7 ' + grandPlateaux + ' plateaux \u00b7 ' + grandPoids.toFixed(2) + ' kg \u00b7 ' + grandTotal.toLocaleString('fr-FR') + ' FCFA',
+      selected.length + ' journ\u00e9es \u00b7 ' + grandPlateaux + ' plateaux \u00b7 ' + fmtKg(grandPoids) + ' kg \u00b7 ' + fmt(grandTotal) + ' FCFA',
       margin, y
     );
   }
