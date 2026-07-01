@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Gestion des ventes — Œufs</title>
+<title>Gestion des ventes - Œufs</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <style>
 :root {
@@ -685,7 +685,7 @@ tr:hover td { background: var(--gold-bg); }
     </div>
 
     <div class="pesees-section">
-      <div class="pesees-label">Pesées — Lots de <span id="lot-size-label">10</span> plateaux (poids brut par lot en kg)</div>
+      <div class="pesees-label">Pesées - Lots de <span id="lot-size-label">10</span> plateaux (poids brut par lot en kg)</div>
       <div class="pesees-grid" id="pesees-grid"></div>
       <button class="btn-add-pesee" id="btn-add-pesee">+ Ajouter une pesée</button>
     </div>
@@ -693,19 +693,19 @@ tr:hover td { background: var(--gold-bg); }
     <div class="computed-row" id="computed-row" style="display:none;">
       <div class="computed-field">
         <div class="clabel">Nombre de lots</div>
-        <div class="cvalue" id="c-lots">—</div>
+        <div class="cvalue" id="c-lots">-</div>
       </div>
       <div class="computed-field">
         <div class="clabel">Nb de plateaux</div>
-        <div class="cvalue" id="c-plateaux">—</div>
+        <div class="cvalue" id="c-plateaux">-</div>
       </div>
       <div class="computed-field">
         <div class="clabel">Poids net (kg)</div>
-        <div class="cvalue" id="c-net">—</div>
+        <div class="cvalue" id="c-net">-</div>
       </div>
       <div class="computed-field">
         <div class="clabel">Montant (FCFA)</div>
-        <div class="cvalue" id="c-montant">—</div>
+        <div class="cvalue" id="c-montant">-</div>
       </div>
     </div>
 
@@ -814,15 +814,15 @@ tr:hover td { background: var(--gold-bg); }
     <div class="computed-row" id="edit-computed" style="margin-top:1rem;">
       <div class="computed-field">
         <div class="clabel">Poids net</div>
-        <div class="cvalue" id="ec-net">—</div>
+        <div class="cvalue" id="ec-net">-</div>
       </div>
       <div class="computed-field">
         <div class="clabel">Plateaux</div>
-        <div class="cvalue" id="ec-plateaux">—</div>
+        <div class="cvalue" id="ec-plateaux">-</div>
       </div>
       <div class="computed-field">
         <div class="clabel">Montant</div>
-        <div class="cvalue" id="ec-montant">—</div>
+        <div class="cvalue" id="ec-montant">-</div>
       </div>
     </div>
     <div class="btn-row" style="margin-top:1.25rem;">
@@ -895,7 +895,7 @@ function addPesee() {
   div.innerHTML = `
     <span class="pesee-num">L${peseeCount}</span>
     <input class="field input pesee-input" type="number" placeholder="0.00" step="0.01" min="0" oninput="computeAll()" style="padding:4px 8px; border:1px solid var(--border-strong); border-radius:6px; background:var(--surface); font-family:'DM Mono',monospace; font-size:13px; outline:none; width:90px;" />
-    <span class="pesee-prix" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); min-width:80px;">—</span>
+    <span class="pesee-prix" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); min-width:80px;">-</span>
     <button class="pesee-del" onclick="removePesee('pesee-${peseeCount}')" title="Supprimer">×</button>
   `;
   grid.appendChild(div);
@@ -931,7 +931,7 @@ function computeAll() {
       const lotMontant = Math.round(v * prix);
       if (prixSpans[i]) prixSpans[i].textContent = lotMontant.toLocaleString('fr-FR') + ' F';
     } else {
-      if (prixSpans[i]) prixSpans[i].textContent = '—';
+      if (prixSpans[i]) prixSpans[i].textContent = '-';
     }
   });
   const row = document.getElementById('computed-row');
@@ -1000,6 +1000,7 @@ function renderClients() {
         <td style="font-family:'DM Mono',monospace;">${c.prix.toLocaleString('fr-FR')}</td>
         <td style="font-family:'DM Mono',monospace; color:var(--gold); font-weight:600;">${c.montant.toLocaleString('fr-FR')} FCFA</td>
         <td class="actions">
+          <button class="icon-btn" onclick="shareClient(${c.id})" title="Envoyer le point">📤</button>
           <button class="icon-btn" onclick="openEdit(${c.id})" title="Modifier">✏️</button>
           <button class="icon-btn del" onclick="removeClient(${c.id})" title="Supprimer">🗑</button>
         </td>
@@ -1035,7 +1036,7 @@ function openEdit(id) {
   editId = id;
   document.getElementById('edit-nom').value = c.nom;
   document.getElementById('edit-prix').value = c.prix;
-  document.getElementById('edit-pesees-label').textContent = `Pesées — Lots de ${config.lot} plateaux (poids brut par lot en kg)`;
+  document.getElementById('edit-pesees-label').textContent = `Pesées - Lots de ${config.lot} plateaux (poids brut par lot en kg)`;
   const grid = document.getElementById('edit-pesees-grid');
   grid.innerHTML = '';
   c.pesees.forEach((v, i) => {
@@ -1045,7 +1046,7 @@ function openEdit(id) {
     div.innerHTML = `
       <span class="pesee-num">L${i+1}</span>
       <input class="pesee-input" type="number" value="${v}" step="0.01" min="0" oninput="computeEdit()" style="padding:4px 8px; border:1px solid var(--border-strong); border-radius:6px; background:var(--surface); font-family:'DM Mono',monospace; font-size:13px; outline:none; width:90px;" />
-      <span class="pesee-prix" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); min-width:80px;">—</span>
+      <span class="pesee-prix" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); min-width:80px;">-</span>
       <button class="pesee-del" onclick="this.parentElement.remove(); computeEdit()">×</button>
     `;
     grid.appendChild(div);
@@ -1062,7 +1063,7 @@ function addEditPesee() {
   div.innerHTML = `
     <span class="pesee-num">L${n}</span>
     <input class="pesee-input" type="number" placeholder="0.00" step="0.01" min="0" oninput="computeEdit()" style="padding:4px 8px; border:1px solid var(--border-strong); border-radius:6px; background:var(--surface); font-family:'DM Mono',monospace; font-size:13px; outline:none; width:90px;" />
-    <span class="pesee-prix" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); min-width:80px;">—</span>
+    <span class="pesee-prix" style="font-family:'DM Mono',monospace; font-size:12px; color:var(--gold); min-width:80px;">-</span>
     <button class="pesee-del" onclick="this.parentElement.remove(); computeEdit()">×</button>
   `;
   grid.appendChild(div);
@@ -1082,7 +1083,7 @@ function computeEdit() {
       const lotMontant = Math.round(v * prix);
       if (prixSpans[i]) prixSpans[i].textContent = lotMontant.toLocaleString('fr-FR') + ' F';
     } else {
-      if (prixSpans[i]) prixSpans[i].textContent = '—';
+      if (prixSpans[i]) prixSpans[i].textContent = '-';
     }
   });
   const nbLots = pesees.length;
@@ -1171,9 +1172,9 @@ function renderHistory() {
       </div>
       <div class="hist-body" id="hb-${i}">
         <div class="table-wrap"><table>
-          <thead><tr><th>Client</th><th>Lots</th><th>Plateaux</th><th>Poids brut</th><th>Poids net</th><th>Prix/kg</th><th>Montant</th></tr></thead>
+          <thead><tr><th>Client</th><th>Lots</th><th>Plateaux</th><th>Poids brut</th><th>Poids net</th><th>Prix/kg</th><th>Montant</th><th>Point</th></tr></thead>
           <tbody>
-            ${h.clients.map(c => `<tr>
+            ${h.clients.map((c, j) => `<tr>
               <td>${c.nom}</td>
               <td><span class="badge badge-gold">${c.nbLots}</span></td>
               <td><span class="badge badge-green">${c.nbPlateaux}</span></td>
@@ -1181,6 +1182,7 @@ function renderHistory() {
               <td style="font-family:'DM Mono',monospace;font-weight:600;">${c.net.toFixed(2)} kg</td>
               <td style="font-family:'DM Mono',monospace;">${c.prix.toLocaleString('fr-FR')}</td>
               <td style="font-family:'DM Mono',monospace;color:var(--gold);font-weight:600;">${c.montant.toLocaleString('fr-FR')} FCFA</td>
+              <td><button class="icon-btn" onclick="shareHistClient(${i}, ${j})" title="Envoyer le point">📤</button></td>
             </tr>`).join('')}
           </tbody>
         </table></div>
@@ -1282,7 +1284,7 @@ function downloadPDF() {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
   doc.setTextColor(26, 21, 16);
-  doc.text("Ventes d'oeufs \u2014 Rapport", margin, y);
+  doc.text("Ventes d'oeufs - Rapport", margin, y);
   y += 6;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
@@ -1306,66 +1308,7 @@ function downloadPDF() {
 
     // Detail par client : nom, resume, pesees en colonnes, total client
     h.clients.forEach(function(c) {
-      if (y > 258) { doc.addPage(); y = margin; }
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10.5);
-      doc.setTextColor(26, 21, 16);
-      doc.text(c.nom, margin, y);
-      y += 5;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(120, 110, 100);
-      doc.text(
-        c.nbLots + ' lots \u00b7 ' + c.nbPlateaux + ' plateaux \u00b7 ' + fmt(c.prix) + ' FCFA/kg',
-        margin, y
-      );
-      y += 3;
-
-      var pesees = (c.pesees && c.pesees.length) ? c.pesees : [];
-      if (pesees.length) {
-        // 1/2/3 colonnes selon le nombre de lots (ex: 30 lots -> 3 colonnes)
-        var cols = pesees.length > 18 ? 3 : (pesees.length >= 2 ? 2 : 1);
-        var rows = Math.ceil(pesees.length / cols);
-        var body = [];
-        for (var r = 0; r < rows; r++) {
-          var line = [];
-          for (var cg = 0; cg < cols; cg++) {
-            var pi = cg * rows + r; // remplissage colonne par colonne
-            if (pi < pesees.length) {
-              var w = pesees[pi];
-              var lotMont = Math.round(w * c.prix);
-              line.push('L' + (pi + 1) + '   ' + fmtKg(w) + ' kg   =   ' + fmt(lotMont) + ' F');
-            } else {
-              line.push('');
-            }
-          }
-          body.push(line);
-        }
-        var colW = (210 - margin * 2) / cols;
-        var colStyles = {};
-        for (var ci = 0; ci < cols; ci++) colStyles[ci] = { cellWidth: colW };
-        doc.autoTable({
-          startY: y,
-          margin: { left: margin, right: margin },
-          body: body,
-          theme: 'grid',
-          styles: { font: 'courier', fontSize: 8, textColor: [26, 21, 16], cellPadding: 1.5, lineColor: [222, 214, 202], lineWidth: 0.1 },
-          columnStyles: colStyles,
-        });
-        y = doc.lastAutoTable.finalY + 2;
-      }
-
-      if (y > 264) { doc.addPage(); y = margin; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(200, 134, 10);
-      doc.text(
-        'Total ' + c.nom + ' : ' + fmtKg(c.net) + ' kg \u00b7 ' + fmt(c.montant) + ' FCFA',
-        margin, y + 3
-      );
-      y += 10;
+      y = drawClientDetail(doc, c, y, margin);
     });
 
     // Total de la journee
@@ -1415,6 +1358,146 @@ function downloadPDF() {
   }
 
   doc.save('point-ventes-oeufs.pdf');
+}
+
+// Dessine le detail d'un client (nom, resume, pesees en colonnes, total).
+// Reutilise par le PDF de la journee ET le PDF individuel. Retourne le nouveau y.
+function drawClientDetail(doc, c, y, margin) {
+  if (y > 258) { doc.addPage(); y = margin; }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(26, 21, 16);
+  doc.text(c.nom, margin, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(120, 110, 100);
+  doc.text(
+    c.nbLots + ' lots · ' + c.nbPlateaux + ' plateaux · ' + fmt(c.prix) + ' FCFA/kg',
+    margin, y
+  );
+  y += 3;
+
+  var pesees = (c.pesees && c.pesees.length) ? c.pesees : [];
+  if (pesees.length) {
+    // 1/2/3 colonnes selon le nombre de lots (ex: 30 lots -> 3 colonnes)
+    var cols = pesees.length > 18 ? 3 : (pesees.length >= 2 ? 2 : 1);
+    var rows = Math.ceil(pesees.length / cols);
+    var body = [];
+    for (var r = 0; r < rows; r++) {
+      var line = [];
+      for (var cg = 0; cg < cols; cg++) {
+        var pi = cg * rows + r; // remplissage colonne par colonne
+        if (pi < pesees.length) {
+          var w = pesees[pi];
+          var lotMont = Math.round(w * c.prix);
+          line.push('L' + (pi + 1) + '   ' + fmtKg(w) + ' kg   =   ' + fmt(lotMont) + ' F');
+        } else {
+          line.push('');
+        }
+      }
+      body.push(line);
+    }
+    var colW = (210 - margin * 2) / cols;
+    var colStyles = {};
+    for (var ci = 0; ci < cols; ci++) colStyles[ci] = { cellWidth: colW };
+    doc.autoTable({
+      startY: y,
+      margin: { left: margin, right: margin },
+      body: body,
+      theme: 'grid',
+      styles: { font: 'courier', fontSize: 8, textColor: [26, 21, 16], cellPadding: 1.5, lineColor: [222, 214, 202], lineWidth: 0.1 },
+      columnStyles: colStyles,
+    });
+    y = doc.lastAutoTable.finalY + 2;
+  }
+
+  if (y > 264) { doc.addPage(); y = margin; }
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(200, 134, 10);
+  doc.text(
+    'Total ' + c.nom + ' : ' + fmtKg(c.net) + ' kg · ' + fmt(c.montant) + ' FCFA',
+    margin, y + 3
+  );
+  y += 10;
+  return y;
+}
+
+// Construit un PDF ne contenant que le point d'un seul client.
+function buildClientPDF(c, dateLabel) {
+  var jsPDFLib = window.jspdf;
+  if (!jsPDFLib) { alert('Erreur : librairie PDF non chargée.'); return null; }
+  var doc = new jsPDFLib.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var margin = 15;
+  var y = margin;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.setTextColor(26, 21, 16);
+  doc.text('Point de ' + c.nom, margin, y);
+  y += 7;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(120, 110, 100);
+  doc.text(dateLabel || '', margin, y);
+  y += 6;
+
+  doc.setDrawColor(200, 134, 10);
+  doc.setLineWidth(0.5);
+  doc.line(margin, y, 210 - margin, y);
+  y += 8;
+
+  drawClientDetail(doc, c, y, margin);
+  return doc;
+}
+
+function slugName(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'client';
+}
+
+// Partage le point d'un client via le menu natif (Android/WhatsApp),
+// avec repli sur le telechargement du fichier.
+async function shareClientPDF(c, dateLabel) {
+  var doc = buildClientPDF(c, dateLabel);
+  if (!doc) return;
+  var filename = 'point-' + slugName(c.nom) + '.pdf';
+  try {
+    var blob = doc.output('blob');
+    var file = new File([blob], filename, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'Point de ' + c.nom,
+        text: 'Bonjour ' + c.nom + ', voici votre point.',
+      });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return; // partage annule par l'utilisateur
+    // sinon on retombe sur le telechargement
+  }
+  doc.save(filename);
+}
+
+function shareClient(id) {
+  var c = clients.find(function(x) { return x.id === id; });
+  if (!c) return;
+  var lbl = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  shareClientPDF(c, lbl);
+}
+
+function shareHistClient(i, j) {
+  var h = history[i];
+  if (!h || !h.clients[j]) return;
+  shareClientPDF(h.clients[j], h.date);
 }
 
 
