@@ -1304,29 +1304,84 @@ function downloadPDF() {
     doc.text(h.date, margin + 4, y + 5);
     y += 16;
 
-    doc.autoTable({
-      startY: y,
-      margin: { left: margin, right: margin },
-      head: [['Client', 'Lots', 'Plateaux', 'Poids net (kg)', 'Prix/kg (FCFA)', 'Montant (FCFA)']],
-      body: h.clients.map(function(c) {
-        return [c.nom, c.nbLots, c.nbPlateaux, fmtKg(c.net), fmt(c.prix), fmt(c.montant)];
-      }),
-      headStyles: { fillColor: [26, 21, 16], textColor: [245, 217, 138], fontStyle: 'bold', fontSize: 9 },
-      bodyStyles: { fontSize: 9, textColor: [26, 21, 16] },
-      alternateRowStyles: { fillColor: [253, 250, 244] },
-      tableLineColor: [200, 134, 10],
-      tableLineWidth: 0.1,
+    // Detail par client : nom, resume, pesees en colonnes, total client
+    h.clients.forEach(function(c) {
+      if (y > 258) { doc.addPage(); y = margin; }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(26, 21, 16);
+      doc.text(c.nom, margin, y);
+      y += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(120, 110, 100);
+      doc.text(
+        c.nbLots + ' lots \u00b7 ' + c.nbPlateaux + ' plateaux \u00b7 ' + fmt(c.prix) + ' FCFA/kg',
+        margin, y
+      );
+      y += 3;
+
+      var pesees = (c.pesees && c.pesees.length) ? c.pesees : [];
+      if (pesees.length) {
+        // 1/2/3 colonnes selon le nombre de lots (ex: 30 lots -> 3 colonnes)
+        var cols = pesees.length > 18 ? 3 : (pesees.length >= 2 ? 2 : 1);
+        var rows = Math.ceil(pesees.length / cols);
+        var body = [];
+        for (var r = 0; r < rows; r++) {
+          var line = [];
+          for (var cg = 0; cg < cols; cg++) {
+            var pi = cg * rows + r; // remplissage colonne par colonne
+            if (pi < pesees.length) {
+              var w = pesees[pi];
+              var lotMont = Math.round(w * c.prix);
+              line.push('L' + (pi + 1) + '   ' + fmtKg(w) + ' kg   =   ' + fmt(lotMont) + ' F');
+            } else {
+              line.push('');
+            }
+          }
+          body.push(line);
+        }
+        var colW = (210 - margin * 2) / cols;
+        var colStyles = {};
+        for (var ci = 0; ci < cols; ci++) colStyles[ci] = { cellWidth: colW };
+        doc.autoTable({
+          startY: y,
+          margin: { left: margin, right: margin },
+          body: body,
+          theme: 'grid',
+          styles: { font: 'courier', fontSize: 8, textColor: [26, 21, 16], cellPadding: 1.5, lineColor: [222, 214, 202], lineWidth: 0.1 },
+          columnStyles: colStyles,
+        });
+        y = doc.lastAutoTable.finalY + 2;
+      }
+
+      if (y > 264) { doc.addPage(); y = margin; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(200, 134, 10);
+      doc.text(
+        'Total ' + c.nom + ' : ' + fmtKg(c.net) + ' kg \u00b7 ' + fmt(c.montant) + ' FCFA',
+        margin, y + 3
+      );
+      y += 10;
     });
 
-    y = doc.lastAutoTable.finalY + 4;
+    // Total de la journee
+    if (y > 258) { doc.addPage(); y = margin; }
+    doc.setDrawColor(200, 134, 10);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, 210 - margin, y);
+    y += 5;
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(9.5);
     doc.setTextColor(26, 21, 16);
     doc.text(
-      'Total : ' + h.totPlateaux + ' plateaux \u00b7 ' + fmtKg(h.totPoids) + ' kg \u00b7 ' + fmt(h.totRecettes) + ' FCFA',
-      margin + 4, y + 4
+      'Total journ\u00e9e : ' + h.clients.length + ' clients \u00b7 ' + h.totPlateaux + ' plateaux \u00b7 ' + fmtKg(h.totPoids) + ' kg \u00b7 ' + fmt(h.totRecettes) + ' FCFA',
+      margin, y
     );
-    y += 12;
+    y += 10;
 
     if (idx < selected.length - 1) {
       doc.setDrawColor(220, 210, 200);
