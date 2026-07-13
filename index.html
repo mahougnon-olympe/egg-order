@@ -2,9 +2,17 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Gestion des ventes - Œufs</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1a1510" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Ventes Oeufs" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" href="icons/icon-192.png" />
+<link rel="stylesheet" href="assets/fonts/fonts.css" />
 <style>
 :root {
   --bg: #f5f0e8;
@@ -619,8 +627,8 @@ tr:hover td { background: var(--gold-bg); }
   .tab-btn { padding: 12px 12px; font-size: 12px; }
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="assets/js/jspdf.umd.min.js"></script>
+<script src="assets/js/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -1556,6 +1564,15 @@ function bindEvents() {
 }
 
 bindEvents();
+
+// PWA : enregistre le service worker pour le fonctionnement hors ligne.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function(err) {
+      console.warn('SW non enregistré :', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
