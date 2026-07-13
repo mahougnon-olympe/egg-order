@@ -856,6 +856,7 @@ function init() {
   if (!config.lot) config.lot = 10; // jamais 0 : sinon tous les plateaux valent 0
   clients = STORE.get('oeufs_day') || [];
   history = STORE.get('oeufs_hist') || [];
+  repairHistory();
   applyConfig();
   initPesees();
   renderClients();
@@ -884,6 +885,26 @@ function saveConfig() {
   msg.style.opacity = 1;
   setTimeout(() => msg.style.opacity = 0, 2500);
   recalcAll();
+  repairHistory();
+  renderHistory();
+}
+
+// Repare les journees cloturees avec plateaux = 0 (enregistrees quand la
+// taille de lot n'etait pas configuree) : recalcule avec le lot actuel.
+function repairHistory() {
+  if (!config.lot) return;
+  let changed = false;
+  history.forEach(h => {
+    h.clients.forEach(c => {
+      if (c.nbLots > 0 && !c.nbPlateaux) {
+        c.nbPlateaux = c.nbLots * config.lot;
+        changed = true;
+      }
+    });
+    const tot = h.clients.reduce((s, c) => s + (c.nbPlateaux || 0), 0);
+    if (tot !== h.totPlateaux) { h.totPlateaux = tot; changed = true; }
+  });
+  if (changed) STORE.set('oeufs_hist', history);
 }
 
 // PESEES SAISIE
