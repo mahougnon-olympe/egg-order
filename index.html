@@ -1565,10 +1565,9 @@ function bindEvents() {
 
 bindEvents();
 
-// PWA : enregistre le service worker pour le fonctionnement hors ligne.
-// Ignore en mode natif (APK Capacitor) : les assets y sont deja embarques.
-var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-if ('serviceWorker' in navigator && !isNative) {
+// Enregistre le service worker : fonctionnement hors ligne + mises a jour
+// automatiques (PWA comme APK, qui charge la version en ligne mise en cache).
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').catch(function(err) {
       console.warn('SW non enregistré :', err);

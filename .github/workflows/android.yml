@@ -39,6 +39,14 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Set app version
+        run: |
+          VN=$(node -p "require('./package.json').version")
+          VC=${{ github.run_number }}
+          sed -i "s/versionCode 1/versionCode $VC/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"$VN\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
       - name: Generate icons & splash
         run: npx capacitor-assets generate --android --assetPath resources
 

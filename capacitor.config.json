@@ -1,5 +1,10 @@
 {
   "appId": "com.olympe.ventesoeufs",
   "appName": "Ventes Oeufs",
-  "webDir": "www"
+  "webDir": "www",
+  "server": {
+    "url": "https://mahougnon-olympe.github.io/egg-order/",
+    "androidScheme": "https",
+    "cleartext": false
+  }
 }
