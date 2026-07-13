@@ -810,6 +810,7 @@ tr:hover td { background: var(--gold-bg); }
     <div class="btn-row">
       <button class="btn btn-primary" id="btn-export-data">Exporter les données</button>
       <button class="btn btn-outline" id="btn-import-data">Importer une sauvegarde</button>
+      <button class="btn btn-outline" id="btn-paste-data">Coller une sauvegarde</button>
       <input type="file" id="inp-import-file" accept=".json,application/json" style="display:none;" />
     </div>
     <span class="success-msg" id="backup-msg" style="display:block; margin-top:8px;"></span>
@@ -1372,6 +1373,19 @@ async function exportData() {
       return;
     }
   }
+  // Ancien APK sans plugins natifs : le telechargement ne marche pas dans la
+  // WebView -> on copie la sauvegarde dans le presse-papiers a la place.
+  var isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if (isNative) {
+    try {
+      await navigator.clipboard.writeText(json);
+      alert('Sauvegarde copiée dans le presse-papiers.\n\nColle-la dans une note, un e-mail ou un message WhatsApp (à toi-même) pour la garder.');
+      backupMsg('Sauvegarde copiée ✓');
+    } catch (e) {
+      alert('Export impossible sur cette version de l\'app. Mets à jour l\'application (nouvel APK) puis réessaie.');
+    }
+    return;
+  }
   var blob = new Blob([json], { type: 'application/json' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1381,34 +1395,45 @@ async function exportData() {
   backupMsg('Sauvegarde téléchargée ✓');
 }
 
+function importFromText(text) {
+  try {
+    restoreBackup(JSON.parse(text));
+  } catch (e) {
+    alert('Texte illisible : ce n\'est pas une sauvegarde valide.');
+  }
+}
+
 function importData(file) {
   var reader = new FileReader();
   reader.onload = function() {
     try {
-      var data = JSON.parse(reader.result);
-      if (!data || data.app !== 'ventes-oeufs' || !Array.isArray(data.history)) {
-        alert('Fichier invalide : ce n\'est pas une sauvegarde de cette application.');
-        return;
-      }
-      var nH = data.history.length, nC = (data.clients || []).length;
-      if (!confirm('Restaurer cette sauvegarde ?\n' + nH + ' journée(s) d\'historique, ' + nC + ' client(s) du jour.\n\nLes données actuelles seront remplacées.')) return;
-      config = data.config || config;
-      clients = data.clients || [];
-      history = data.history;
-      STORE.set('oeufs_cfg', config);
-      STORE.set('oeufs_day', clients);
-      STORE.set('oeufs_hist', history);
-      applyConfig();
-      renderClients();
-      renderHistory();
-      updateMetrics();
-      document.getElementById('inp-prix').value = config.prix || '';
-      backupMsg('Sauvegarde restaurée ✓');
+      restoreBackup(JSON.parse(reader.result));
     } catch (e) {
       alert('Fichier illisible : ' + e.message);
     }
   };
   reader.readAsText(file);
+}
+
+function restoreBackup(data) {
+  if (!data || data.app !== 'ventes-oeufs' || !Array.isArray(data.history)) {
+    alert('Fichier invalide : ce n\'est pas une sauvegarde de cette application.');
+    return;
+  }
+  var nH = data.history.length, nC = (data.clients || []).length;
+  if (!confirm('Restaurer cette sauvegarde ?\n' + nH + ' journée(s) d\'historique, ' + nC + ' client(s) du jour.\n\nLes données actuelles seront remplacées.')) return;
+  config = data.config || config;
+  clients = data.clients || [];
+  history = data.history;
+  STORE.set('oeufs_cfg', config);
+  STORE.set('oeufs_day', clients);
+  STORE.set('oeufs_hist', history);
+  applyConfig();
+  renderClients();
+  renderHistory();
+  updateMetrics();
+  document.getElementById('inp-prix').value = config.prix || '';
+  backupMsg('Sauvegarde restaurée ✓');
 }
 
 function fmt(n) {
@@ -1707,6 +1732,10 @@ function bindEvents() {
   on('btn-download-pdf', function() { downloadPDF(); });
   on('btn-export-data', function() { exportData(); });
   on('btn-import-data', function() { document.getElementById('inp-import-file').click(); });
+  on('btn-paste-data', function() {
+    var t = prompt('Colle ici le texte de la sauvegarde :');
+    if (t) importFromText(t.trim());
+  });
   document.getElementById('inp-import-file').addEventListener('change', function(e) {
     if (e.target.files && e.target.files[0]) {
       importData(e.target.files[0]);
