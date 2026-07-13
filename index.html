@@ -954,7 +954,7 @@ function initPesees() {
   addPesee();
 }
 
-function addPesee() {
+function addPesee(focus) {
   peseeCount++;
   const grid = document.getElementById('pesees-grid');
   const div = document.createElement('div');
@@ -968,6 +968,11 @@ function addPesee() {
   `;
   grid.appendChild(div);
   computeAll();
+  if (focus) {
+    const inp = div.querySelector('input');
+    inp.focus();
+    inp.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 }
 
 function removePesee(id) {
@@ -1124,7 +1129,7 @@ function openEdit(id) {
   document.getElementById('edit-modal').classList.add('open');
 }
 
-function addEditPesee() {
+function addEditPesee(focus) {
   const grid = document.getElementById('edit-pesees-grid');
   const n = grid.children.length + 1;
   const div = document.createElement('div');
@@ -1137,6 +1142,11 @@ function addEditPesee() {
   `;
   grid.appendChild(div);
   computeEdit();
+  if (focus) {
+    const inp = div.querySelector('input');
+    inp.focus();
+    inp.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
 }
 
 function computeEdit() {
@@ -1741,11 +1751,11 @@ function bindEvents() {
   on('tabbtn-historique', function() { switchTab('historique'); });
   on('tabbtn-config', function() { switchTab('config'); });
   on('btn-cloture', function() { cloturerJournee(); });
-  on('btn-add-pesee', function() { addPesee(); });
+  on('btn-add-pesee', function() { addPesee(true); });
   on('btn-add-client', function() { addClient(); });
   on('btn-clear-form', function() { clearForm(); });
   on('btn-save-config', function() { saveConfig(); });
-  on('btn-add-edit-pesee', function() { addEditPesee(); });
+  on('btn-add-edit-pesee', function() { addEditPesee(true); });
   on('btn-save-edit', function() { saveEdit(); });
   on('btn-close-modal', function() { closeModal(); });
   on('btn-download-pdf', function() { downloadPDF(); });
