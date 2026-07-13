@@ -852,7 +852,8 @@ let history = [];
 let editId = null;
 
 function init() {
-  config = STORE.get('oeufs_cfg') || { plateau: 0, lot: 0, prix: 0 };
+  config = STORE.get('oeufs_cfg') || { plateau: 0, lot: 10, prix: 0 };
+  if (!config.lot) config.lot = 10; // jamais 0 : sinon tous les plateaux valent 0
   clients = STORE.get('oeufs_day') || [];
   history = STORE.get('oeufs_hist') || [];
   applyConfig();
@@ -875,7 +876,7 @@ function applyConfig() {
 
 function saveConfig() {
   config.plateau = parseFloat(document.getElementById('cfg-plateau').value) || 0;
-  config.lot = parseInt(document.getElementById('cfg-lot').value) || 0;
+  config.lot = parseInt(document.getElementById('cfg-lot').value) || 10;
   config.prix = parseFloat(document.getElementById('cfg-prix').value) || 0;
   STORE.set('oeufs_cfg', config);
   document.getElementById('lot-size-label').textContent = config.lot;
@@ -1031,6 +1032,7 @@ function recalcAll() {
   clients.forEach(c => {
     c.net = parseFloat(c.brutTotal.toFixed(3));
     c.montant = Math.round(c.net * c.prix);
+    c.nbPlateaux = c.nbLots * config.lot;
   });
   STORE.set('oeufs_day', clients);
   renderClients();
@@ -1270,6 +1272,34 @@ function updatePdfBar() {
   if (chkAll) chkAll.checked = all.length > 0 && checked.length === all.length;
 }
 
+// Detecte le mode natif (APK Capacitor) ou le pont est disponible.
+function capPlugins() {
+  var C = window.Capacitor;
+  if (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins) return C.Plugins;
+  return null;
+}
+
+// Exporte un PDF : via le pont natif dans l'APK (Filesystem + menu de partage
+// Android), sinon telechargement navigateur classique.
+async function exportPdf(doc, filename, title) {
+  var P = capPlugins();
+  if (P && P.Filesystem && P.Share) {
+    try {
+      var dataUri = doc.output('datauristring');
+      var base64 = dataUri.substring(dataUri.indexOf(',') + 1);
+      await P.Filesystem.writeFile({ path: filename, data: base64, directory: 'CACHE' });
+      var uri = await P.Filesystem.getUri({ path: filename, directory: 'CACHE' });
+      await P.Share.share({ title: title || filename, url: uri.uri });
+      return;
+    } catch (e) {
+      if (e && /cancel/i.test(String(e.message || e))) return; // partage annule
+      alert('Erreur export PDF : ' + (e && e.message ? e.message : e));
+      return;
+    }
+  }
+  doc.save(filename);
+}
+
 function fmt(n) {
   return Number(n).toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
 }
@@ -1365,7 +1395,7 @@ function downloadPDF() {
     );
   }
 
-  doc.save('point-ventes-oeufs.pdf');
+  exportPdf(doc, 'point-ventes-oeufs.pdf', 'Rapport ventes oeufs');
 }
 
 // Dessine le detail d'un client (nom, resume, pesees en colonnes, total).
@@ -1477,6 +1507,9 @@ async function shareClientPDF(c, dateLabel) {
   var doc = buildClientPDF(c, dateLabel);
   if (!doc) return;
   var filename = 'point-' + slugName(c.nom) + '.pdf';
+  // En natif (APK) : pont Capacitor directement.
+  if (capPlugins()) { exportPdf(doc, filename, 'Point de ' + c.nom); return; }
+  // Sur le web : partage natif de fichier si dispo, sinon telechargement.
   try {
     var blob = doc.output('blob');
     var file = new File([blob], filename, { type: 'application/pdf' });
