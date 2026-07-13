@@ -612,6 +612,10 @@ tr:hover td { background: var(--gold-bg); }
   width: 90%;
   max-width: 520px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  max-height: 85vh;              /* ne depasse jamais l'ecran */
+  overflow-y: auto;              /* le contenu defile a l'interieur */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;  /* le scroll ne "fuit" pas vers la page */
 }
 
 .modal h2 {
