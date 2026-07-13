@@ -824,6 +824,22 @@ tr:hover td { background: var(--gold-bg); }
 </main>
 
 <!-- EDIT MODAL -->
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal">
+    <h2 style="color:var(--red);">Confirmer la suppression</h2>
+    <p id="confirm-text" style="font-size:14px; color:var(--ink); margin-bottom:1rem;"></p>
+    <label style="display:flex; align-items:flex-start; gap:10px; padding:12px; background:var(--red-bg); border:1px solid rgba(184,50,50,0.3); border-radius:var(--radius); cursor:pointer; font-size:13px; color:var(--ink2);">
+      <input type="checkbox" id="confirm-chk" style="margin-top:3px; width:16px; height:16px; accent-color:var(--red); flex-shrink:0;" />
+      <span>Je comprends que cette suppression est <strong>définitive</strong> : les données supprimées ne pourront plus être retrouvées.</span>
+    </label>
+    <div class="btn-row" style="margin-top:1.25rem;">
+      <button class="btn btn-danger" id="btn-confirm-del" disabled style="opacity:0.4;">Supprimer</button>
+      <button class="btn btn-outline" id="btn-confirm-cancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- PASTE BACKUP MODAL -->
 <div class="modal-bg" id="paste-modal">
   <div class="modal" style="display:flex; flex-direction:column; max-height:85vh;">
@@ -1049,12 +1065,42 @@ function clearForm() {
   document.getElementById('computed-row').style.display = 'none';
 }
 
+// CONFIRMATION DE SUPPRESSION (message + case a cocher obligatoire)
+let confirmAction = null;
+
+function confirmDelete(message, onConfirm) {
+  confirmAction = onConfirm;
+  document.getElementById('confirm-text').textContent = message;
+  const chk = document.getElementById('confirm-chk');
+  chk.checked = false;
+  setConfirmBtn(false);
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+function setConfirmBtn(enabled) {
+  const btn = document.getElementById('btn-confirm-del');
+  btn.disabled = !enabled;
+  btn.style.opacity = enabled ? '1' : '0.4';
+}
+
+function closeConfirm() {
+  confirmAction = null;
+  document.getElementById('confirm-modal').classList.remove('open');
+}
+
 function removeClient(id) {
-  if (!confirm('Supprimer ce client ?')) return;
-  clients = clients.filter(c => c.id !== id);
-  STORE.set('oeufs_day', clients);
-  renderClients();
-  updateMetrics();
+  const c = clients.find(x => x.id === id);
+  if (!c) return;
+  confirmDelete(
+    'Êtes-vous vraiment sûr de vouloir supprimer le client « ' + c.nom + ' » (' +
+    c.nbLots + ' lot(s), ' + c.montant.toLocaleString('fr-FR') + ' FCFA) de la journée en cours ?',
+    function() {
+      clients = clients.filter(x => x.id !== id);
+      STORE.set('oeufs_day', clients);
+      renderClients();
+      updateMetrics();
+    }
+  );
 }
 
 function renderClients() {
@@ -1722,10 +1768,17 @@ function toggleHist(i) {
 }
 
 function deleteHist(i) {
-  if (!confirm('Supprimer cette journée de l\'historique ?')) return;
-  history.splice(i, 1);
-  STORE.set('oeufs_hist', history);
-  renderHistory();
+  const h = history[i];
+  if (!h) return;
+  confirmDelete(
+    'Êtes-vous vraiment sûr de vouloir supprimer la journée du ' + h.date + ' (' +
+    h.clients.length + ' client(s), ' + h.totRecettes.toLocaleString('fr-FR') + ' FCFA) de l\'historique ?',
+    function() {
+      history.splice(i, 1);
+      STORE.set('oeufs_hist', history);
+      renderHistory();
+    }
+  );
 }
 
 // TABS
@@ -1785,6 +1838,16 @@ function bindEvents() {
   on('btn-paste-cancel', function() {
     document.getElementById('paste-modal').classList.remove('open');
   });
+  document.getElementById('confirm-chk').addEventListener('change', function(e) {
+    setConfirmBtn(e.target.checked);
+  });
+  on('btn-confirm-del', function() {
+    if (!document.getElementById('confirm-chk').checked || !confirmAction) return;
+    var fn = confirmAction;
+    closeConfirm();
+    fn();
+  });
+  on('btn-confirm-cancel', function() { closeConfirm(); });
   document.getElementById('inp-import-file').addEventListener('change', function(e) {
     if (e.target.files && e.target.files[0]) {
       importData(e.target.files[0]);
