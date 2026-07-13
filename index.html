@@ -820,6 +820,25 @@ tr:hover td { background: var(--gold-bg); }
 </main>
 
 <!-- EDIT MODAL -->
+<!-- PASTE BACKUP MODAL -->
+<div class="modal-bg" id="paste-modal">
+  <div class="modal" style="display:flex; flex-direction:column; max-height:85vh;">
+    <h2>Coller une sauvegarde</h2>
+    <p style="font-size:13px; color:var(--ink2); margin:8px 0 12px;">
+      Colle ici le texte de la sauvegarde (appui long &rarr; Coller), puis valide.
+    </p>
+    <textarea id="paste-area" placeholder='{"app":"ventes-oeufs", ...}'
+      style="flex:1; min-height:120px; max-height:40vh; resize:none; padding:10px 12px;
+             border:1px solid var(--border-strong); border-radius:var(--radius);
+             background:var(--bg); font-family:'DM Mono',monospace; font-size:11px;
+             color:var(--ink); outline:none; overflow-y:auto;"></textarea>
+    <div class="btn-row" style="margin-top:1rem;">
+      <button class="btn btn-primary" id="btn-paste-ok">Restaurer</button>
+      <button class="btn btn-outline" id="btn-paste-cancel">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="edit-modal">
   <div class="modal">
     <h2>Modifier le client</h2>
@@ -1357,7 +1376,7 @@ async function exportData() {
     clients: clients,
     history: history,
   };
-  var json = JSON.stringify(payload, null, 2);
+  var json = JSON.stringify(payload); // compact : plus court a coller/partager
   var filename = 'sauvegarde-oeufs-' + new Date().toISOString().slice(0, 10) + '.json';
   var P = capPlugins();
   if (P && P.Filesystem && P.Share) {
@@ -1733,8 +1752,24 @@ function bindEvents() {
   on('btn-export-data', function() { exportData(); });
   on('btn-import-data', function() { document.getElementById('inp-import-file').click(); });
   on('btn-paste-data', function() {
-    var t = prompt('Colle ici le texte de la sauvegarde :');
-    if (t) importFromText(t.trim());
+    var area = document.getElementById('paste-area');
+    area.value = '';
+    document.getElementById('paste-modal').classList.add('open');
+    // Pre-remplit depuis le presse-papiers si l'autorisation est accordee.
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(function(t) {
+        if (t && t.indexOf('ventes-oeufs') !== -1 && !area.value) area.value = t;
+      }).catch(function() {});
+    }
+  });
+  on('btn-paste-ok', function() {
+    var t = document.getElementById('paste-area').value.trim();
+    if (!t) { alert('Colle d\'abord le texte de la sauvegarde.'); return; }
+    document.getElementById('paste-modal').classList.remove('open');
+    importFromText(t);
+  });
+  on('btn-paste-cancel', function() {
+    document.getElementById('paste-modal').classList.remove('open');
   });
   document.getElementById('inp-import-file').addEventListener('change', function(e) {
     if (e.target.files && e.target.files[0]) {
