@@ -796,6 +796,24 @@ tr:hover td { background: var(--gold-bg); }
       <span class="success-msg" id="cfg-msg">Paramètres sauvegardés ✓</span>
     </div>
   </div>
+
+  <div class="card" style="max-width:520px;">
+    <div class="card-title">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Sauvegarde des données
+    </div>
+    <p style="font-size:13px; color:var(--ink2); margin-bottom:1rem;">
+      Exporte l'historique, la journée en cours et les paramètres dans un fichier.
+      Garde ce fichier en lieu sûr (WhatsApp, e-mail...) : il permet de tout
+      restaurer en cas de changement de téléphone ou de réinstallation.
+    </p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btn-export-data">Exporter les données</button>
+      <button class="btn btn-outline" id="btn-import-data">Importer une sauvegarde</button>
+      <input type="file" id="inp-import-file" accept=".json,application/json" style="display:none;" />
+    </div>
+    <span class="success-msg" id="backup-msg" style="display:block; margin-top:8px;"></span>
+  </div>
 </div>
 
 </main>
@@ -1321,6 +1339,78 @@ async function exportPdf(doc, filename, title) {
   doc.save(filename);
 }
 
+// SAUVEGARDE / RESTAURATION DES DONNEES
+function backupMsg(text) {
+  var el = document.getElementById('backup-msg');
+  el.textContent = text;
+  el.style.opacity = 1;
+  setTimeout(function() { el.style.opacity = 0; }, 4000);
+}
+
+async function exportData() {
+  var payload = {
+    app: 'ventes-oeufs',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    config: config,
+    clients: clients,
+    history: history,
+  };
+  var json = JSON.stringify(payload, null, 2);
+  var filename = 'sauvegarde-oeufs-' + new Date().toISOString().slice(0, 10) + '.json';
+  var P = capPlugins();
+  if (P && P.Filesystem && P.Share) {
+    try {
+      await P.Filesystem.writeFile({ path: filename, data: json, directory: 'CACHE', encoding: 'utf8' });
+      var uri = await P.Filesystem.getUri({ path: filename, directory: 'CACHE' });
+      await P.Share.share({ title: 'Sauvegarde ventes oeufs', url: uri.uri });
+      backupMsg('Sauvegarde exportée ✓');
+      return;
+    } catch (e) {
+      if (e && /cancel/i.test(String(e.message || e))) return;
+      alert('Erreur export : ' + (e && e.message ? e.message : e));
+      return;
+    }
+  }
+  var blob = new Blob([json], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  backupMsg('Sauvegarde téléchargée ✓');
+}
+
+function importData(file) {
+  var reader = new FileReader();
+  reader.onload = function() {
+    try {
+      var data = JSON.parse(reader.result);
+      if (!data || data.app !== 'ventes-oeufs' || !Array.isArray(data.history)) {
+        alert('Fichier invalide : ce n\'est pas une sauvegarde de cette application.');
+        return;
+      }
+      var nH = data.history.length, nC = (data.clients || []).length;
+      if (!confirm('Restaurer cette sauvegarde ?\n' + nH + ' journée(s) d\'historique, ' + nC + ' client(s) du jour.\n\nLes données actuelles seront remplacées.')) return;
+      config = data.config || config;
+      clients = data.clients || [];
+      history = data.history;
+      STORE.set('oeufs_cfg', config);
+      STORE.set('oeufs_day', clients);
+      STORE.set('oeufs_hist', history);
+      applyConfig();
+      renderClients();
+      renderHistory();
+      updateMetrics();
+      document.getElementById('inp-prix').value = config.prix || '';
+      backupMsg('Sauvegarde restaurée ✓');
+    } catch (e) {
+      alert('Fichier illisible : ' + e.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
 function fmt(n) {
   return Number(n).toLocaleString('fr-FR').replace(/\u202f/g, ' ').replace(/\u00a0/g, ' ');
 }
@@ -1615,6 +1705,14 @@ function bindEvents() {
   on('btn-save-edit', function() { saveEdit(); });
   on('btn-close-modal', function() { closeModal(); });
   on('btn-download-pdf', function() { downloadPDF(); });
+  on('btn-export-data', function() { exportData(); });
+  on('btn-import-data', function() { document.getElementById('inp-import-file').click(); });
+  document.getElementById('inp-import-file').addEventListener('change', function(e) {
+    if (e.target.files && e.target.files[0]) {
+      importData(e.target.files[0]);
+      e.target.value = ''; // permet de reimporter le meme fichier
+    }
+  });
 }
 
 bindEvents();
