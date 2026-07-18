@@ -1522,9 +1522,44 @@ function fmtKg(n) {
   return Number(n).toFixed(2).replace('.', ',');
 }
 
-function downloadPDF() {
+// Chargement a la demande de jsPDF : si la librairie n'est pas presente au
+// moment du clic (Safari iPhone, cache defaillant...), on la recharge en
+// contournant le cache, puis on continue.
+function loadScript(src) {
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = function() { reject(new Error('echec chargement ' + src)); };
+    document.head.appendChild(s);
+  });
+}
+
+function jsPdfReady() {
+  return !!(window.jspdf && window.jspdf.jsPDF &&
+    window.jspdf.jsPDF.API && typeof window.jspdf.jsPDF.API.autoTable === 'function');
+}
+
+async function ensureJsPDF() {
+  if (jsPdfReady()) return true;
+  var bust = '?r=' + Date.now(); // contourne un eventuel cache corrompu
+  try {
+    if (!(window.jspdf && window.jspdf.jsPDF)) {
+      await loadScript('assets/js/jspdf.umd.min.js' + bust);
+    }
+    if (!jsPdfReady()) {
+      await loadScript('assets/js/jspdf.plugin.autotable.min.js' + bust);
+    }
+  } catch (e) { /* rapporte via le retour */ }
+  return jsPdfReady();
+}
+
+async function downloadPDF() {
+  if (!await ensureJsPDF()) {
+    alert('Impossible de charger le module PDF. Vérifie ta connexion internet puis réessaie.');
+    return;
+  }
   var jsPDFLib = window.jspdf;
-  if (!jsPDFLib) { alert('Erreur : librairie PDF non chargée.'); return; }
   var doc = new jsPDFLib.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   var checked = document.querySelectorAll('.hist-checkbox:checked');
   var indices = Array.from(checked).map(function(c) { return parseInt(c.dataset.index); });
@@ -1680,9 +1715,12 @@ function drawClientDetail(doc, c, y, margin) {
 }
 
 // Construit un PDF ne contenant que le point d'un seul client.
-function buildClientPDF(c, dateLabel) {
+async function buildClientPDF(c, dateLabel) {
+  if (!await ensureJsPDF()) {
+    alert('Impossible de charger le module PDF. Vérifie ta connexion internet puis réessaie.');
+    return null;
+  }
   var jsPDFLib = window.jspdf;
-  if (!jsPDFLib) { alert('Erreur : librairie PDF non chargée.'); return null; }
   var doc = new jsPDFLib.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   var margin = 15;
   var y = margin;
@@ -1719,7 +1757,7 @@ function slugName(s) {
 // Partage le point d'un client via le menu natif (Android/WhatsApp),
 // avec repli sur le telechargement du fichier.
 async function shareClientPDF(c, dateLabel) {
-  var doc = buildClientPDF(c, dateLabel);
+  var doc = await buildClientPDF(c, dateLabel);
   if (!doc) return;
   var filename = 'point-' + slugName(c.nom) + '.pdf';
   // En natif (APK) : pont Capacitor directement.
