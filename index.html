@@ -1550,6 +1550,16 @@ async function ensureJsPDF() {
     if (!jsPdfReady()) {
       await loadScript('assets/js/jspdf.plugin.autotable.min.js' + bust);
     }
+  } catch (e) { /* on tente le CDN ci-dessous */ }
+  if (jsPdfReady()) return true;
+  // Dernier recours : le CDN via internet.
+  try {
+    if (!(window.jspdf && window.jspdf.jsPDF)) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    if (!jsPdfReady()) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+    }
   } catch (e) { /* rapporte via le retour */ }
   return jsPdfReady();
 }
@@ -1896,13 +1906,26 @@ function bindEvents() {
 
 bindEvents();
 
-// Enregistre le service worker : fonctionnement hors ligne + mises a jour
-// automatiques (PWA comme APK, qui charge la version en ligne mise en cache).
+// Service worker : hors ligne uniquement dans l'APK (Capacitor).
+// Sur la version web (navigateur), on utilise directement internet : on
+// desinscrit tout service worker et on purge les caches existants pour
+// eliminer les caches corrompus (probleme constate sur iPhone).
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').catch(function(err) {
-      console.warn('SW non enregistré :', err);
-    });
+    if (capPlugins()) {
+      navigator.serviceWorker.register('sw.js').catch(function(err) {
+        console.warn('SW non enregistré :', err);
+      });
+    } else {
+      navigator.serviceWorker.getRegistrations().then(function(regs) {
+        regs.forEach(function(r) { r.unregister(); });
+      }).catch(function() {});
+      if (window.caches && caches.keys) {
+        caches.keys().then(function(keys) {
+          keys.forEach(function(k) { caches.delete(k); });
+        }).catch(function() {});
+      }
+    }
   });
 }
 </script>
